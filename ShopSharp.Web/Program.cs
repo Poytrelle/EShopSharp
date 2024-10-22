@@ -1,11 +1,7 @@
 using Ardalis.ListStartupServices;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using ShopSharp.Domain;
 using ShopSharp.Domain.Data;
-using ShopSharp.Domain.Identity;
-using ShopSharp.Infrastructure.Services;
 using ShopSharp.Web.Config;
 
 //
@@ -16,20 +12,6 @@ builder.Logging.AddConsole();
 builder.Services.ConfigureShopSharpDb(builder.Configuration);
 builder.Services.AddCookieSettings();
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-    });
-
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-           .AddDefaultUI()
-           .AddEntityFrameworkStores<AppIdentityDbContext>()
-                           .AddDefaultTokenProviders();
-
-builder.Services.AddScoped<ITokenClaimsService, IdentityTokenClaimService>();
 builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddCoreServices(builder.Configuration);
 builder.Services.AddWebServices(builder.Configuration);
@@ -72,8 +54,6 @@ builder.Services.AddScoped(s => new HttpClient
     BaseAddress = new Uri(baseUrlConfig!.WebBase)
 });
 
-builder.Services.AddServerSideBlazor();
-
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 var app = builder.Build();
@@ -82,18 +62,15 @@ app.Logger.LogInformation("App created...");
 
 app.Logger.LogInformation("Seeding Database...");
 
-using (var scope = app.Services.CreateScope())
+// if we are in development mode, seed the database
+if (app.Environment.IsDevelopment())
 {
+    using var scope = app.Services.CreateScope();
     var scopedProvider = scope.ServiceProvider;
     try
     {
         var catalogContext = scopedProvider.GetRequiredService<CatalogContext>();
         await CatalogContextSeed.SeedAsync(catalogContext, app.Logger);
-
-        var userManager = scopedProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = scopedProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var identityContext = scopedProvider.GetRequiredService<AppIdentityDbContext>();
-        await AppIdentityDbContextSeed.SeedAsync(identityContext, userManager, roleManager);
     }
     catch (Exception ex)
     {
@@ -127,7 +104,6 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseRouting();
 
@@ -135,10 +111,8 @@ app.UseCookiePolicy();
 app.UseAuthentication();
 app.UseAuthorization();
 
-
 app.MapControllerRoute("default", "{controller:slugify=Home}/{action:slugify=Index}/{id?}");
 app.MapRazorPages();
-//endpoints.MapBlazorHub("/admin");
 app.MapFallbackToFile("index.html");
 
 app.Logger.LogInformation("LAUNCHING");

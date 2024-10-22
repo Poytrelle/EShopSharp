@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace ShopSharp.Web.Config;
 
-//TODO : replace IMemoryCache with a distributed cache if you are in multi-host scenario
 public class RevokeAuthenticationEvents : CookieAuthenticationEvents
 {
     private readonly IMemoryCache _cache;

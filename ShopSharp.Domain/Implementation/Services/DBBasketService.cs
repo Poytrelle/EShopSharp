@@ -7,18 +7,10 @@ using ShopSharp.Infrastructure.Specifications;
 
 namespace ShopSharp.Domain.Implementation.Services;
 
-public class BasketService : IBasketService
+public class DBBasketService(
+    IRepository<Basket> _basketRepository,
+    IAppLogger<DBBasketService> _logger) : IBasketService
 {
-    private readonly IRepository<Basket> _basketRepository;
-    private readonly IAppLogger<BasketService> _logger;
-
-    public BasketService(IRepository<Basket> basketRepository,
-        IAppLogger<BasketService> logger)
-    {
-        _basketRepository = basketRepository;
-        _logger = logger;
-    }
-
     public async Task<Basket> AddItemToBasket(string username, int catalogItemId, decimal price, int quantity = 1)
     {
         var basketSpec = new BasketWithItemsSpecification(username);
@@ -62,26 +54,5 @@ public class BasketService : IBasketService
         basket.RemoveEmptyItems();
         await _basketRepository.UpdateAsync(basket);
         return basket;
-    }
-
-    public async Task TransferBasketAsync(string anonymousId, string userName)
-    {
-        var anonymousBasketSpec = new BasketWithItemsSpecification(anonymousId);
-        var anonymousBasket = await _basketRepository.FirstOrDefaultAsync(anonymousBasketSpec);
-        if (anonymousBasket == null)
-            return;
-        var userBasketSpec = new BasketWithItemsSpecification(userName);
-        var userBasket = await _basketRepository.FirstOrDefaultAsync(userBasketSpec);
-        if (userBasket == null)
-        {
-            userBasket = new() { BuyerId = userName };
-            await _basketRepository.AddAsync(userBasket);
-        }
-        foreach (var item in anonymousBasket.Items)
-        {
-            userBasket.AddItem(item.CatalogItemId, item.UnitPrice, item.Quantity);
-        }
-        await _basketRepository.UpdateAsync(userBasket);
-        await _basketRepository.DeleteAsync(anonymousBasket);
     }
 }

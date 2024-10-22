@@ -1,4 +1,6 @@
-﻿using ShopSharp.Domain.Data;
+﻿using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ShopSharp.Domain.Data;
 using ShopSharp.Domain.Implementation.Services;
 using ShopSharp.Infrastructure.EF;
 using ShopSharp.Infrastructure.Services;
@@ -13,9 +15,20 @@ public static class ConfigureCoreServices
         services.AddScoped(typeof(IReadRepository<>), typeof(EfRepository<>));
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 
-        services.AddScoped<IBasketService, BasketService>();
-        services.AddScoped<IOrderService, OrderService>();
-        services.AddScoped<IBasketQueryService, BasketQueryService>();
+        // if UseBasketDB is true, use the database basket service
+        if (configuration.GetValue<bool>("UseBasketDB", false))
+        {
+            services.AddScoped<IBasketService, DBBasketService>();
+            services.AddScoped<IBasketQueryService, DBBasketQueryService>();
+        }
+        else
+        {
+            services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
+
+            services.AddScoped<IBasketService, CachedBasketService>();
+            services.AddScoped<IBasketQueryService, CachedBasketQueryService>();
+        }
 
         var catalogSettings = configuration.Get<CatalogSettings>() ?? new CatalogSettings();
         services.AddSingleton<IUriComposer>(new UriComposer(catalogSettings));

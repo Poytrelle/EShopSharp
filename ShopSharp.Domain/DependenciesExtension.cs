@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ShopSharp.Domain.Data;
-using ShopSharp.Domain.Identity;
 
 namespace ShopSharp.Domain;
 
@@ -17,8 +16,9 @@ public static class DependenciesExtension
             services.AddDbContext<CatalogContext>(c =>
                c.UseInMemoryDatabase("Catalog"));
 
-            services.AddDbContext<AppIdentityDbContext>(options =>
-                options.UseInMemoryDatabase("Identity"));
+            // Unused for now
+            //services.AddDbContext<AppIdentityDbContext>(options =>
+            //    options.UseInMemoryDatabase("Identity"));
         }
         else
         {
@@ -28,9 +28,10 @@ public static class DependenciesExtension
             services.AddDbContext<CatalogContext>(c =>
                 c.UseSqlServer(configuration.GetConnectionString("CatalogConnection")));
 
-            // Add Identity DbContext
-            services.AddDbContext<AppIdentityDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("IdentityConnection")));
+            //// Unused for now
+            //// Add Identity DbContext
+            //services.AddDbContext<AppIdentityDbContext>(options =>
+            //    options.UseSqlServer(configuration.GetConnectionString("IdentityConnection")));
         }
 
         return services;
